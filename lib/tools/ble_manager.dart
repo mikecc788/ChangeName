@@ -34,6 +34,15 @@ class LFSBleManager{
     // mtuStreamSubscription.cancel();
   }
 
+  // connectBle(BluetoothDevice device) async {
+  //   try {
+  //     await device.connect(autoConnect: true).timeout(const Duration(seconds: 4));
+  //     // await _setMTU(128, device);
+  //   } catch (error) {
+  //     debugPrint(error.toString());
+  //   }
+  // }
+
   connectBle(BluetoothDevice device) async {
     try {
       await device.connect(autoConnect: true).timeout(const Duration(seconds: 4));
@@ -52,5 +61,4 @@ class LFSBleManager{
       }
     });
   }
-
 }
