@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:lfs_rename/res/resources.dart';
 import 'package:lfs_rename/scan_device.dart';
 import 'package:lfs_rename/tools/ble_manager.dart';
@@ -19,9 +20,21 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
+  void requestPermission() async {
+    final status = await Permission.bluetooth.request();
+    if (status.isGranted) {
+      await Permission.bluetoothConnect.request();
+      var status1 = await Permission.bluetoothScan.request();
+      if (status1.isGranted) {
+        await Permission.bluetoothAdvertise.request();
+      }
+    }
+  }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    requestPermission();
     return MaterialApp(
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -38,6 +51,10 @@ class MyApp extends StatelessWidget {
             }
             return BluetoothOffScreen(state: state);
           }),
+        builder: (context,child) {
+          child = EasyLoading.init()(context,child);
+          return child;
+        }
     );
   }
 }
@@ -284,8 +301,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       nameController.text = list[index].name;
                       //点击item就开始连接 发送数据
                       LFSBleManager().connectBle(list[index]);
-
-
                       Alert(
                           context: context,
                           title: '输入设备名字',

@@ -9,54 +9,74 @@ class SearchListItem extends StatelessWidget {
   final int index;
   final List<BluetoothDevice> list;
   final Function(int) clickItem;
-  const SearchListItem({Key? key, required this.index, required this.list, required this.clickItem}) : super(key: key);
+
+  const SearchListItem(
+      {Key? key,
+      required this.index,
+      required this.list,
+      required this.clickItem})
+      : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     String title = list[index].name;
     String detail = list[index].id.toString();
-    double titleSize = Platform.isIOS?24:18;
-    double detailSize = Platform.isIOS?18:14;
+    double titleSize = Platform.isIOS ? 24 : 18;
+    double detailSize = Platform.isIOS ? 18 : 14;
     return StreamBuilder<BluetoothDeviceState>(
         stream: list[index].state,
         builder: (context, snapshot) {
           // LogD('snapshot=${snapshot.data}');
-          if(!snapshot.hasData){
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return  Padding(
-            padding: const EdgeInsets.only(left: 20,top: 20,right: 20),
-            child: GestureDetector(
-                  onTap:()=> clickItem(index),
-                  child: Card(
-                    color: Colours.home_color,
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: kDefaultLeftPadding,top: 20,bottom: 18),
-                                child: AutoSizeText(title,maxLines: 2,style: TextStyle(color: Colours.bar_color,fontWeight: FontWeight.w600,fontSize: titleSize),),
+          return Padding(
+              padding: const EdgeInsets.only(left: 20, top: 20, right: 20),
+              child: GestureDetector(
+                onTap: () => clickItem(index),
+                child: Card(
+                  color: Colours.home_color,
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: kDefaultLeftPadding,
+                                  top: 20,
+                                  bottom: 18),
+                              child: AutoSizeText(
+                                title,
+                                maxLines: 2,
+                                style: TextStyle(
+                                    color: Colours.bar_color,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: titleSize),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.only(left: kDefaultLeftPadding,bottom: 40),
-                                child: AutoSizeText(detail,maxLines: 2,style: TextStyle(color: Colours.bar_color,fontSize: detailSize),),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: kDefaultLeftPadding, bottom: 40),
+                              child: AutoSizeText(
+                                detail,
+                                maxLines: 2,
+                                style: TextStyle(
+                                    color: Colours.bar_color,
+                                    fontSize: detailSize),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                )
-          );
-        }
-    );
+                ),
+              ));
+        });
   }
-
 }
 
 class BluetoothOffScreen extends StatelessWidget {
@@ -92,50 +112,104 @@ class BluetoothOffScreen extends StatelessWidget {
 }
 
 class ScanResultTile extends StatelessWidget {
-  const ScanResultTile({Key? key, required this.result, this.onTap}) : super(key: key);
+  const ScanResultTile({Key? key, required this.result, this.onTap, this.onCal})
+      : super(key: key);
   final ScanResult result;
   final VoidCallback? onTap;
+  final VoidCallback? onCal;
   @override
   Widget build(BuildContext context) {
     return Container(
-      child:ListView(
-        physics:NeverScrollableScrollPhysics() ,
+      child: ListView(
+        physics: NeverScrollableScrollPhysics(),
         shrinkWrap: true,
         children: [
-      Padding(
-      padding: const EdgeInsets.only(left: 20,top: 20,right: 20),
-      child: GestureDetector(
-        onTap:()=> (){
-
-        },
-        child: Card(
-          color: Colours.home_color,
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                flex: 4,
+          Padding(
+            padding: const EdgeInsets.only(left: 20, top: 20, right: 20),
+            child: GestureDetector(
+              onTap: () => () {},
+              child: Card(
+                color: Colours.home_color,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: kDefaultLeftPadding,top: 20,bottom: 18),
-                      child: AutoSizeText(result.device.name,maxLines: 2,style: TextStyle(color: Colours.bar_color,fontWeight: FontWeight.w600,fontSize: 16),),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: kDefaultLeftPadding,
+                                    top: 20,
+                                    bottom: 18),
+                                child: AutoSizeText(
+                                  result.device.name,
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                      color: Colours.bar_color,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: kDefaultLeftPadding, bottom: 40),
+                                child: AutoSizeText(
+                                  result.device.id.toString(),
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                      color: Colours.bar_color, fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: kDefaultLeftPadding,bottom: 40),
-                      child: AutoSizeText(result.device.id.toString(),maxLines: 2,style: TextStyle(color: Colours.bar_color,fontSize: 14),),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        result.device.name.contains('Air Smart')? ElevatedButton(
+                            onPressed: (result.advertisementData.connectable)
+                                ? onCal
+                                : null,
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colours.bar_color),
+                              minimumSize:
+                                  MaterialStateProperty.all(Size(100, 50)),
+                            ),
+                            child: const Text(
+                              '校准系数',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            )):SizedBox(),
+                        Gaps.hGap32,
+                        ElevatedButton(
+                            onPressed: (result.advertisementData.connectable)
+                                ? onTap
+                                : null,
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Colours.bar_color),
+                              minimumSize:
+                              MaterialStateProperty.all(Size(100, 50)),
+                            ),
+                            child: const Text(
+                              '修改名字',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 18),
+                            )),
+                      ],
                     ),
+                    Gaps.vGap16,
                   ],
                 ),
               ),
-
-              TextButton(onPressed: (result.advertisementData.connectable) ? onTap : null, child: Text('CONNECT',)),
-
-            ],
+            ),
           ),
-        ),
-      ),
-    ),
         ],
       ),
     );
@@ -157,6 +231,7 @@ class ScanResultTile extends StatelessWidget {
     });
     return res.join(', ');
   }
+
   String getNiceServiceData(Map<String, List<int>> data) {
     if (data.isEmpty) {
       return 'N/A';
@@ -188,8 +263,10 @@ class ScanResultTile extends StatelessWidget {
         ],
       );
     } else {
-      return Text(result.device.id.toString(),style: TextStyle(color: Colors.white),);
-
+      return Text(
+        result.device.id.toString(),
+        style: TextStyle(color: Colors.white),
+      );
     }
   }
 
@@ -227,42 +304,28 @@ class ServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (characteristicTiles.length > 0) {
+    debugPrint('service=${service.uuid.toString().toUpperCase().substring(4, 8)}');
+    if (characteristicTiles.isNotEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: characteristicTiles,
-        // Column(
-
-          // children: <Widget>[
-          //   Text('Service'),
-          //   Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}',
-          //       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          //           color: Theme.of(context).textTheme.caption?.color))
-          // ],
-        // ),
       );
     } else {
-      return ListTile(
-        title: Text('Service'),
-        subtitle:
-        Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}'),
-      );
+      return const SizedBox();
     }
   }
 }
 
-class CharacteristicTile extends StatelessWidget {
+class CharacteristicTile1 extends StatelessWidget {
   final BluetoothCharacteristic characteristic;
-  final List<DescriptorTile> descriptorTiles;
   final VoidCallback? onReadPressed;
   final VoidCallback? onWritePressed;
   final VoidCallback? onNotificationPressed;
 
-  const CharacteristicTile(
+  const CharacteristicTile1(
       {Key? key,
         required this.characteristic,
-        required this.descriptorTiles,
         this.onReadPressed,
         this.onWritePressed,
         this.onNotificationPressed})
@@ -275,10 +338,10 @@ class CharacteristicTile extends StatelessWidget {
       initialData: characteristic.lastValue,
       builder: (c, snapshot) {
         final value = snapshot.data;
-       // if(snapshot.data!.isNotEmpty){
-       //   characteristic.setNotifyValue(true);
-       // }
-        debugPrint('characteristicValue=$value');
+        // if(snapshot.data!.isNotEmpty){
+        //   characteristic.setNotifyValue(true);
+        // }
+        // debugPrint('characteristicValue=$value');
         return ExpansionTile(
           title: ListTile(
             title: Column(
@@ -307,8 +370,94 @@ class CharacteristicTile extends StatelessWidget {
               //   onPressed: onReadPressed,
               // ),
               characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1001' ? ElevatedButton(
-                onPressed: onWritePressed, child:Text('修改名字'),
+                onPressed: onWritePressed, child:Text('写入'),
               ):Text(''),
+
+              characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1002'?ElevatedButton(
+                onPressed: onNotificationPressed, child: characteristic.isNotifying?Text('正在监听'):Text('开始监听'),
+              ):Text(''),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class CharacteristicTile extends StatelessWidget {
+  final BluetoothCharacteristic characteristic;
+  final List<DescriptorTile> descriptorTiles;
+  final VoidCallback? onReadPressed;
+  final VoidCallback? onWritePressed;
+  final VoidCallback? onNotificationPressed;
+
+  const CharacteristicTile(
+      {Key? key,
+      required this.characteristic,
+      required this.descriptorTiles,
+      this.onReadPressed,
+      this.onWritePressed,
+      this.onNotificationPressed})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<int>>(
+      stream: characteristic.value,
+      initialData: characteristic.lastValue,
+      builder: (c, snapshot) {
+        final value = snapshot.data;
+        // if(snapshot.data!.isNotEmpty){
+        //   characteristic.setNotifyValue(true);
+        // }
+        debugPrint('characteristicValue=$value');
+
+        return characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+                '1001' || characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+            'AE01'
+            ? Padding(
+                padding: const EdgeInsets.only(top: 38.0),
+                child: ElevatedButton(
+                  onPressed: onWritePressed,
+                  child: Text('修改名字'),
+                ),
+              )
+            :const SizedBox();
+
+        return ExpansionTile(
+          title: ListTile(
+            title: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                // Text('${characteristic.value}'),
+                Text('Characteristic'),
+                Text(
+                    '0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).textTheme.caption?.color))
+              ],
+            ),
+            subtitle: Text(value.toString()),
+            contentPadding: EdgeInsets.all(0.0),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // IconButton(
+              //   icon: Icon(
+              //     Icons.file_download,
+              //     color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+              //   ),
+              //   onPressed: onReadPressed,
+              // ),
+              characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+                      '1001'
+                  ? ElevatedButton(
+                      onPressed: onWritePressed,
+                      child: Text('修改名字'),
+                    )
+                  : Text(''),
 
               // characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1002'?IconButton(
               //   icon: Icon(
@@ -319,9 +468,10 @@ class CharacteristicTile extends StatelessWidget {
               //   onPressed: onNotificationPressed,
               // ):Text(''),
 
-              characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1002'?ElevatedButton(
-                onPressed: onNotificationPressed, child: characteristic.isNotifying?Text('正在监听'):Text('开始监听'),
-              ):Text(''),
+              //正在监听开关
+              // characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1002'?ElevatedButton(
+              //   onPressed: onNotificationPressed, child: characteristic.isNotifying?Text('正在监听'):Text('开始监听'),
+              // ):Text(''),
             ],
           ),
           children: descriptorTiles,
@@ -338,9 +488,9 @@ class DescriptorTile extends StatelessWidget {
 
   const DescriptorTile(
       {Key? key,
-        required this.descriptor,
-        this.onReadPressed,
-        this.onWritePressed})
+      required this.descriptor,
+      this.onReadPressed,
+      this.onWritePressed})
       : super(key: key);
 
   @override
@@ -408,4 +558,3 @@ class AdapterStateTile extends StatelessWidget {
     );
   }
 }
-
