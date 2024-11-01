@@ -1,8 +1,7 @@
 import 'dart:io';
-
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:lfs_rename/res/resources.dart';
 
 class SearchListItem extends StatelessWidget {
@@ -23,8 +22,8 @@ class SearchListItem extends StatelessWidget {
     String detail = list[index].id.toString();
     double titleSize = Platform.isIOS ? 24 : 18;
     double detailSize = Platform.isIOS ? 18 : 14;
-    return StreamBuilder<BluetoothDeviceState>(
-        stream: list[index].state,
+    return StreamBuilder<BluetoothConnectionState>(
+        stream: list[index].connectionState,
         builder: (context, snapshot) {
           // LogD('snapshot=${snapshot.data}');
           if (!snapshot.hasData) {
@@ -82,7 +81,7 @@ class SearchListItem extends StatelessWidget {
 class BluetoothOffScreen extends StatelessWidget {
   const BluetoothOffScreen({Key? key, this.state}) : super(key: key);
 
-  final BluetoothState? state;
+  final BluetoothAdapterState? state;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +144,7 @@ class ScanResultTile extends StatelessWidget {
                                     top: 20,
                                     bottom: 18),
                                 child: AutoSizeText(
-                                  result.device.name,
+                                  result.device.platformName,
                                   maxLines: 2,
                                   style: TextStyle(
                                       color: Colours.bar_color,
@@ -157,7 +156,7 @@ class ScanResultTile extends StatelessWidget {
                                 padding: const EdgeInsets.only(
                                     left: kDefaultLeftPadding, bottom: 40),
                                 child: AutoSizeText(
-                                  result.device.id.toString(),
+                                  result.device.remoteId.toString(),
                                   maxLines: 2,
                                   style: TextStyle(
                                       color: Colours.bar_color, fontSize: 14),
@@ -171,21 +170,25 @@ class ScanResultTile extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        result.device.name.contains('Air Smart')? ElevatedButton(
-                            onPressed: (result.advertisementData.connectable)
-                                ? onCal
-                                : null,
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colours.bar_color),
-                              minimumSize:
-                                  MaterialStateProperty.all(Size(100, 50)),
-                            ),
-                            child: const Text(
-                              '校准系数',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            )):SizedBox(),
+                        result.device.name.contains('Air Smart')
+                            ? ElevatedButton(
+                                onPressed:
+                                    (result.advertisementData.connectable)
+                                        ? onCal
+                                        : null,
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      MaterialStateProperty.all<Color>(
+                                          Colours.bar_color),
+                                  minimumSize:
+                                      MaterialStateProperty.all(Size(100, 50)),
+                                ),
+                                child: const Text(
+                                  '校准系数',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 18),
+                                ))
+                            : SizedBox(),
                         Gaps.hGap32,
                         ElevatedButton(
                             onPressed: (result.advertisementData.connectable)
@@ -195,12 +198,12 @@ class ScanResultTile extends StatelessWidget {
                               backgroundColor: MaterialStateProperty.all<Color>(
                                   Colours.bar_color),
                               minimumSize:
-                              MaterialStateProperty.all(Size(100, 50)),
+                                  MaterialStateProperty.all(Size(100, 50)),
                             ),
                             child: const Text(
                               '修改名字',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 18),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
                             )),
                       ],
                     ),
@@ -242,56 +245,6 @@ class ScanResultTile extends StatelessWidget {
     });
     return res.join(', ');
   }
-
-  Widget _buildTitle(BuildContext context) {
-    if (result.device.name.isNotEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          AutoSizeText(
-            result.device.name,
-            maxLines: 2,
-            style: TextStyle(color: Colors.white),
-            overflow: TextOverflow.ellipsis,
-          ),
-          Gaps.vGap12,
-          Text(
-            result.device.id.toString(),
-            style: TextStyle(color: Colors.white),
-          )
-        ],
-      );
-    } else {
-      return Text(
-        result.device.id.toString(),
-        style: TextStyle(color: Colors.white),
-      );
-    }
-  }
-
-  Widget _buildAdvRow(BuildContext context, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(title, style: Theme.of(context).textTheme.caption),
-          Gaps.hGap12,
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context)
-                  .textTheme
-                  .caption
-                  ?.apply(color: Colors.black),
-              softWrap: true,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class ServiceTile extends StatelessWidget {
@@ -304,7 +257,8 @@ class ServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('service=${service.uuid.toString().toUpperCase().substring(4, 8)}');
+    debugPrint(
+        'service=${service.uuid.toString().toUpperCase().substring(4, 8)}');
     if (characteristicTiles.isNotEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -325,10 +279,10 @@ class CharacteristicTile1 extends StatelessWidget {
 
   const CharacteristicTile1(
       {Key? key,
-        required this.characteristic,
-        this.onReadPressed,
-        this.onWritePressed,
-        this.onNotificationPressed})
+      required this.characteristic,
+      this.onReadPressed,
+      this.onWritePressed,
+      this.onNotificationPressed})
       : super(key: key);
 
   @override
@@ -353,7 +307,7 @@ class CharacteristicTile1 extends StatelessWidget {
                 Text(
                     '0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.caption?.color))
+                        color: Theme.of(context).textTheme.bodySmall?.color))
               ],
             ),
             subtitle: Text(value.toString()),
@@ -369,13 +323,23 @@ class CharacteristicTile1 extends StatelessWidget {
               //   ),
               //   onPressed: onReadPressed,
               // ),
-              characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1001' ? ElevatedButton(
-                onPressed: onWritePressed, child:Text('写入'),
-              ):Text(''),
+              characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+                      '1001'
+                  ? ElevatedButton(
+                      onPressed: onWritePressed,
+                      child: Text('写入'),
+                    )
+                  : Text(''),
 
-              characteristic.uuid.toString().toUpperCase().substring(4, 8) == '1002'?ElevatedButton(
-                onPressed: onNotificationPressed, child: characteristic.isNotifying?Text('正在监听'):Text('开始监听'),
-              ):Text(''),
+              characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+                      '1002'
+                  ? ElevatedButton(
+                      onPressed: onNotificationPressed,
+                      child: characteristic.isNotifying
+                          ? Text('正在监听')
+                          : Text('开始监听'),
+                    )
+                  : Text(''),
             ],
           ),
         );
@@ -413,8 +377,9 @@ class CharacteristicTile extends StatelessWidget {
         debugPrint('characteristicValue=$value');
 
         return characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
-                '1001' || characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
-            'AE01'
+                    '1001' ||
+                characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
+                    'AE01'
             ? Padding(
                 padding: const EdgeInsets.only(top: 38.0),
                 child: ElevatedButton(
@@ -422,7 +387,7 @@ class CharacteristicTile extends StatelessWidget {
                   child: Text('修改名字'),
                 ),
               )
-            :const SizedBox();
+            : const SizedBox();
 
         return ExpansionTile(
           title: ListTile(
@@ -435,7 +400,7 @@ class CharacteristicTile extends StatelessWidget {
                 Text(
                     '0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.caption?.color))
+                        color: Theme.of(context).textTheme.bodySmall?.color))
               ],
             ),
             subtitle: Text(value.toString()),
@@ -502,10 +467,8 @@ class DescriptorTile extends StatelessWidget {
         children: <Widget>[
           Text('Descriptor'),
           Text('0x${descriptor.uuid.toString().toUpperCase().substring(4, 8)}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Theme.of(context).textTheme.caption?.color))
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color))
         ],
       ),
       subtitle: StreamBuilder<List<int>>(

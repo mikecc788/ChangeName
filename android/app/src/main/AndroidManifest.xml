@@ -2,11 +2,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.lfs_rename">
     <uses-permission android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="31"
+        android:maxSdkVersion="33"
         tools:targetApi="donut" />
 
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="31"
+        android:maxSdkVersion="33"
         tools:targetApi="donut" />
     <!--Android12 的蓝牙权限 如果您的应用与已配对的蓝牙设备通信或者获取当前手机蓝牙是否打开-->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -16,11 +16,9 @@
         tools:targetApi="s" />
     <!--Android12 的蓝牙权限 如果您的应用使当前设备可被其他蓝牙设备检测到-->
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-<!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />-->
-<!--    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />-->
-<!--    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />-->
-<!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
-<!--    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />-->
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
    <application
         android:label="@string/app_name"

@@ -1,10 +1,9 @@
 import 'dart:typed_data';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:lfs_rename/res/resources.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_spinbox/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:lfs_rename/tools/log.dart';
 import 'package:lfs_rename/widgets/textfield_widget.dart';
@@ -85,18 +84,18 @@ class _AirSmartCalibraState extends State<AirSmartCalibra> {
                 maxLines: 1,
               )),
           actions: <Widget>[
-            StreamBuilder<BluetoothDeviceState>(
-                stream: widget.device.state,
-                initialData: BluetoothDeviceState.connecting,
+            StreamBuilder<BluetoothConnectionState>(
+                stream: widget.device.connectionState,
+                initialData: BluetoothConnectionState.disconnected,
                 builder: (context, snapshot) {
                   VoidCallback? rightClick;
                   String text;
                   switch (snapshot.data) {
-                    case BluetoothDeviceState.connected:
+                    case BluetoothConnectionState.connected:
                       rightClick = () => widget.device.disconnect();
                       text = 'DISCONNECT';
                       break;
-                    case BluetoothDeviceState.disconnected:{
+                    case BluetoothConnectionState.disconnected:{
                       rightClick = () => widget.device.connect();
                       text = '连接中';
                       cancelNotify();

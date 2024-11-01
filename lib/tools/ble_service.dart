@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:lfs_rename/tools/ble_communication_service.dart';
 
 class BleService implements CommunicationService{
-  final FlutterBlue bleInstance = FlutterBlue.instance;
   final List<BluetoothDevice> devicesList =  <BluetoothDevice>[];
-
   final Guid serviceCharacteristic =
   Guid("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
   final Guid writecharacteristic = Guid("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
@@ -35,10 +33,8 @@ class BleService implements CommunicationService{
     }
 
     try {
-      if (bleDevice != null) {
-        _isBleConnected = await _connectToDevice(bleDevice, 5);
-      }
-      if (!_isBleConnected) {
+      _isBleConnected = await _connectToDevice(bleDevice, 5);
+          if (!_isBleConnected) {
         return false;
       }
     }catch(e){
@@ -63,18 +59,9 @@ class BleService implements CommunicationService{
           }
         }
         activeDevice = bleDevice;
-        _deviceName = bleDevice.name;
-        var mtu = await bleDevice.mtu.first;
-        print('Default MTU $mtu');
-        try {
-          await bleDevice.requestMtu(247);
-        } catch (e) {
-          print('requestMtu Failed : $e');
-        }
-        print('After set MTU $mtu');
+        _deviceName = bleDevice.platformName;
       }
     }
-
     return _isBleConnected;
   }
 
@@ -138,7 +125,7 @@ class BleService implements CommunicationService{
   }
 
   void deinitControllers() {
-    bleInstance.stopScan();
+    FlutterBluePlus.stopScan();
     _scanController?.close();
     _scanController = null;
     _rxController?.close();
@@ -154,20 +141,20 @@ class BleService implements CommunicationService{
   @override
   Future scanDevices() async{
     if(!_isBleConnected){
-      bleInstance.stopScan();
+      FlutterBluePlus.stopScan();
       devicesList.clear();
 
       initControllers();
 
       print('Listening devices...');
       _scanDevicesSubscription =
-          bleInstance.scanResults.listen((List<ScanResult> results) {
+          FlutterBluePlus.scanResults.listen((List<ScanResult> results) {
             for (ScanResult result in results) {
               _addDeviceTolist(result.device);
             }
           });
       debugPrint('Scanning...');
-      bleInstance.startScan(withServices: [serviceCharacteristic]);
+      FlutterBluePlus.startScan(withServices: [serviceCharacteristic]);
     }
   }
 
@@ -193,7 +180,7 @@ class BleService implements CommunicationService{
   @override
   Future stopScanningDevices() async{
     print('stopping scan');
-    await bleInstance.stopScan();
+    await FlutterBluePlus.stopScan();
     devicesList.clear();
     _scanDevicesSubscription!.cancel();
     _scanDevicesSubscription = null;

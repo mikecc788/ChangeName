@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:lfs_rename/res/resources.dart';
 import 'package:lfs_rename/scan_device.dart';
@@ -36,26 +34,25 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     requestPermission();
     return MaterialApp(
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      // home: const MyHomePage(title: '设备'),
-      home: StreamBuilder<BluetoothState>(
-          stream: FlutterBlue.instance.state,
-          initialData: BluetoothState.unknown,
-          builder: (c, snapshot) {
-            final state = snapshot.data;
-            if (state == BluetoothState.on) {
-              // return MyHomePage(title: '设备');
-              return FindDevicesScreen();
-            }
-            return BluetoothOffScreen(state: state);
-          }),
-        builder: (context,child) {
-          child = EasyLoading.init()(context,child);
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        // home: const MyHomePage(title: '设备'),
+        home: StreamBuilder<BluetoothAdapterState>(
+            stream: FlutterBluePlus.adapterState,
+            initialData: BluetoothAdapterState.unknown,
+            builder: (c, snapshot) {
+              final state = snapshot.data;
+              if (state == BluetoothAdapterState.on) {
+                // return MyHomePage(title: '设备');
+                return FindDevicesScreen();
+              }
+              return BluetoothOffScreen(state: state);
+            }),
+        builder: (context, child) {
+          child = EasyLoading.init()(context, child);
           return child;
-        }
-    );
+        });
   }
 }
 
@@ -68,7 +65,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  FlutterBlue flutterBlue = FlutterBlue.instance;
   List<BluetoothDevice> list = [];
   TextEditingController nameController = TextEditingController();
   FocusNode focusNode = FocusNode();
@@ -79,27 +75,11 @@ class _MyHomePageState extends State<MyHomePage> {
   var notifyStream;
   List<int> bleData = [];
 
-  @override
-  initState() {
-    super.initState();
-    _scanDevice();
-  }
-
-  void requestPermission() async {
-    final status = await Permission.bluetooth.request();
-    if (status.isGranted) {
-      await Permission.bluetoothConnect.request();
-      var status1 = await Permission.bluetoothScan.request();
-      if (status1.isGranted) {
-        await Permission.bluetoothAdvertise.request();
-      }
-    }
-  }
-
   Future<void> _scanDevice() async {
-    flutterBlue.startScan(timeout: scanTimeout);
-    List<BluetoothDevice> connectDevice = await flutterBlue.connectedDevices;
-    flutterBlue.scanResults.listen((scanResult) {
+    FlutterBluePlus.startScan(timeout: scanTimeout);
+    List<BluetoothDevice> connectDevice =
+        await FlutterBluePlus.connectedDevices;
+    FlutterBluePlus.scanResults.listen((scanResult) {
       // do something with scan result
       if (scanResult.isNotEmpty) {
         var device = scanResult[0].device;
@@ -128,11 +108,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _onRefresh() async {
-    // flutterBlue.stopScan();
-    // LogD('开始扫描外设');
-    flutterBlue.startScan(timeout: scanTimeout);
-    List<BluetoothDevice> connectDevice = await flutterBlue.connectedDevices;
-    flutterBlue.scanResults.listen((scanResult) {
+    FlutterBluePlus.startScan(timeout: scanTimeout);
+    List<BluetoothDevice> connectDevice =
+        await FlutterBluePlus.connectedDevices;
+    FlutterBluePlus.scanResults.listen((scanResult) {
       // do something with scan result
       var device = scanResult[0].device;
       setState(() {
@@ -157,8 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    flutterBlue.stopScan();
+    FlutterBluePlus.stopScan();
     cancelNotify();
     super.dispose();
   }
@@ -166,33 +144,6 @@ class _MyHomePageState extends State<MyHomePage> {
   cancelNotify() async {
     if (mCharacteristic != null) {
       await notifyStream.cancel();
-    }
-  }
-
-  void _loadBleChaData(BluetoothDevice device, String name) async {
-    debugPrint('_loadBleChaData');
-    List<BluetoothService> services = await device.discoverServices();
-    for (var service in services) {
-      if (service.uuid.toString().toUpperCase().substring(4, 8) == "1000") {
-        List<BluetoothCharacteristic> characteristics = service.characteristics;
-        for (var characteristic in characteristics) {
-          if (characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
-              "1001") {
-            //写数据
-            debugPrint('write data');
-            mCharacteristic = characteristic;
-          } else if (characteristic.uuid
-                  .toString()
-                  .toUpperCase()
-                  .substring(4, 8) ==
-              "1002") {
-            //读数据
-            if (characteristic.properties.notify) {
-              setCharacteristicNotify(characteristic, true);
-            }
-          }
-        }
-      }
     }
   }
 
@@ -242,7 +193,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    requestPermission();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colours.bar_color,
@@ -263,15 +213,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               )
-            : buildListView(),),
+            : buildListView(),
+      ),
       floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBlue.instance.isScanning,
+        stream: FlutterBluePlus.isScanning,
         initialData: false,
         builder: (c, snapshot) {
           if (snapshot.data!) {
             return FloatingActionButton(
               child: Icon(Icons.stop),
-              onPressed: () => FlutterBlue.instance.stopScan(),
+              onPressed: () => FlutterBluePlus.stopScan(),
               backgroundColor: Colors.red,
             );
           } else {
@@ -291,132 +242,127 @@ class _MyHomePageState extends State<MyHomePage> {
 
   ListView buildListView() {
     return ListView.builder(
-              itemCount: list.length,
-              itemBuilder: (BuildContext context, int index) {
+        itemCount: list.length,
+        itemBuilder: (BuildContext context, int index) {
+          return SearchListItem(
+              index: index,
+              list: list.cast<BluetoothDevice>(),
+              clickItem: (index) async {
+                nameController.text = list[index].name;
+                //点击item就开始连接 发送数据
+                LFSBleManager().connectBle(list[index]);
+                Alert(
+                    context: context,
+                    title: '输入设备名字',
+                    content: StreamBuilder<BluetoothConnectionState>(
+                        stream: list[index].connectionState,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          } else if (snapshot.data ==
+                              BluetoothConnectionState.connected) {
+                            list[index].requestMtu(223);
 
-                return SearchListItem(
-                    index: index,
-                    list: list,
-                    clickItem: (index) async {
-                      nameController.text = list[index].name;
-                      //点击item就开始连接 发送数据
-                      LFSBleManager().connectBle(list[index]);
-                      Alert(
-                          context: context,
-                          title: '输入设备名字',
-                          content: StreamBuilder<BluetoothDeviceState>(
-                            stream: list[index].state,
-                            builder: (context,snapshot) {
-                              if(!snapshot.hasData){
-                                return const Center(child: CircularProgressIndicator());
-                              }
-                              else if(snapshot.data == BluetoothDeviceState.connected){
-                                list[index].requestMtu(223);
+                            FutureBuilder<List<BluetoothService>>(
+                              future: list[index].discoverServices(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
 
-                                FutureBuilder<List<BluetoothService>>(
-                                  future:  list[index].discoverServices(),
-                                  builder: (context,snapshot){
-                                    if(!snapshot.hasData){
-                                      return const Center(child: CircularProgressIndicator());
-                                    }
+                                for (var service in snapshot.data!) {
+                                  if (service.uuid
+                                          .toString()
+                                          .toUpperCase()
+                                          .substring(4, 8) ==
+                                      "1000") {
+                                    List<BluetoothCharacteristic>
+                                        characteristics =
+                                        service.characteristics;
 
-                                    for (var service in snapshot.data!) {
-                                      if (service.uuid.toString().toUpperCase().substring(4, 8) == "1000") {
-                                        List<BluetoothCharacteristic> characteristics = service.characteristics;
-
-                                        for (var characteristic in characteristics) {
-                                          if (characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
-                                              "1001") {
-                                            //写数据
-                                            debugPrint('write data');
-                                            mCharacteristic = characteristic;
-                                          } else if (characteristic.uuid
+                                    for (var characteristic
+                                        in characteristics) {
+                                      if (characteristic.uuid
                                               .toString()
                                               .toUpperCase()
                                               .substring(4, 8) ==
-                                              "1002") {
-                                            //读数据
-                                            if (characteristic.properties.notify) {
-                                              setCharacteristicNotify(characteristic, true);
-                                            }
-                                          }
+                                          "1001") {
+                                        //写数据
+                                        debugPrint('write data');
+                                        mCharacteristic = characteristic;
+                                      } else if (characteristic.uuid
+                                              .toString()
+                                              .toUpperCase()
+                                              .substring(4, 8) ==
+                                          "1002") {
+                                        //读数据
+                                        if (characteristic.properties.notify) {
+                                          setCharacteristicNotify(
+                                              characteristic, true);
                                         }
                                       }
                                     }
+                                  }
+                                }
 
-                                    return TextField(
-                                        controller: nameController,
-                                        focusNode: focusNode,
-                                        decoration: const InputDecoration(
-                                          labelText: '名字',));
-                                  },
-                                );
-                              }
+                                return TextField(
+                                    controller: nameController,
+                                    focusNode: focusNode,
+                                    decoration: const InputDecoration(
+                                      labelText: '名字',
+                                    ));
+                              },
+                            );
+                          }
 
+                          return Center(child: CircularProgressIndicator());
+                        }),
+                    buttons: [
+                      DialogButton(
+                        onPressed: () async {
+                          List<int> sendData =
+                              utf8.encode('AT+BM${nameController.text}');
+                          debugPrint('changeName=$sendData');
+                          for (int i = 0; i < sendData.length; i++) {
+                            bleData.add(sendData[i]);
+                          }
+                          // int tempCount =
+                          //     ((bleData.length + 1) ~/ 20) + 1;
+                          // bleData.insert(5, tempCount);
+                          debugPrint(
+                              'insert=$bleData state=${list[index].state}');
+                          // setDataToDevice(bleData);
+                          if (list[index].connectionState ==
+                              BluetoothConnectionState.connected) {
+                            // await mCharacteristic!.write(sendData, withoutResponse: true);
+                          }
 
-                              // return snapshot.data == BluetoothDeviceState.connected?StreamBuilder<int>(
-                              //     stream: list[index].mtu,
-                              //     initialData: 0,
-                              //     builder: (context, snapshot) {
-                              //       list[index].requestMtu(223);
-                              //       if(!snapshot.hasData){
-                              //         return Center(child: CircularProgressIndicator());
-                              //       }
-                              //       return snapshot.data ==223 ? TextField(
-                              //           controller: nameController,
-                              //           focusNode: focusNode,
-                              //           decoration: const InputDecoration(
-                              //             labelText: '名字',)):Center(child: CircularProgressIndicator());
-                              //
-                              //     }):Center(child: CircularProgressIndicator());
+                          debugPrint('mCharacteristic=$mCharacteristic');
 
-                              return Center(child: CircularProgressIndicator());
-                            }
-                          ),
-                          buttons: [
-                                 DialogButton(
-                                  onPressed: () async{
-                                    List<int> sendData = utf8
-                                        .encode('AT+BM${nameController.text}');
-                                    debugPrint('changeName=$sendData');
-                                    for (int i = 0; i < sendData.length; i++) {
-                                      bleData.add(sendData[i]);
-                                    }
-                                    // int tempCount =
-                                    //     ((bleData.length + 1) ~/ 20) + 1;
-                                    // bleData.insert(5, tempCount);
-                                    debugPrint('insert=$bleData state=${list[index].state}');
-                                    // setDataToDevice(bleData);
-                                    if(list[index].state == BluetoothDeviceState.connected){
-                                      // await mCharacteristic!.write(sendData, withoutResponse: true);
-                                    }
+                          await mCharacteristic!.write(sendData);
+                          sendData.clear();
 
-                                    debugPrint('mCharacteristic=$mCharacteristic');
-
-                                    await mCharacteristic!.write(sendData);
-                                    sendData.clear();
-
-                                    // mCharacteristic!.write(sendData);
-                                    focusNode.unfocus();
-                                    bleData.clear();
-                                    nameController.clear();
-                                    // const timeout = Duration(milliseconds: 3000);
-                                    // Timer(timeout, () {
-                                    //   debugPrint('SET OVER');
-                                    //   cancelNotify();
-                                    //   list[index].disconnect();
-                                    // });
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text(
-                                    "确认",
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 20),
-                                  ),
-                                )
-
-                          ]).show();
-                    });
+                          // mCharacteristic!.write(sendData);
+                          focusNode.unfocus();
+                          bleData.clear();
+                          nameController.clear();
+                          // const timeout = Duration(milliseconds: 3000);
+                          // Timer(timeout, () {
+                          //   debugPrint('SET OVER');
+                          //   cancelNotify();
+                          //   list[index].disconnect();
+                          // });
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          "确认",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                      )
+                    ]).show();
               });
+        });
   }
 }

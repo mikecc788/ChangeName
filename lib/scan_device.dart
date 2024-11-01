@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:lfs_rename/res/resources.dart';
 import 'package:lfs_rename/tools/log.dart';
@@ -24,8 +24,9 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
   @override
   initState() {
     super.initState();
-    FlutterBlue.instance.startScan(timeout: Duration(seconds: 4));
+    FlutterBluePlus.startScan(timeout: Duration(seconds: 4));
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,13 +35,13 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () =>
-            FlutterBlue.instance.startScan(timeout: Duration(seconds: 4)),
+            FlutterBluePlus.startScan(timeout: Duration(seconds: 4)),
         child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
               StreamBuilder<List<BluetoothDevice>>(
                 stream: Stream.periodic(Duration(seconds: 2))
-                    .asyncMap((_) => FlutterBlue.instance.connectedDevices),
+                    .asyncMap((_) => FlutterBluePlus.connectedDevices),
                 initialData: [],
                 builder: (c, snapshot) => Column(
                   children: snapshot.data!
@@ -52,29 +53,30 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                               child: Column(
                                 children: [
                                   Row(
-                                    children:<Widget> [
+                                    children: <Widget>[
                                       Padding(
                                         padding: const EdgeInsets.all(20),
-                                        child: Text(d.name,
+                                        child: Text(d.platformName,
                                             style:
-                                            TextStyle(color: Colors.white)),
+                                                TextStyle(color: Colors.white)),
                                       ),
-
-                                      StreamBuilder<BluetoothDeviceState>(
-                                        stream: d.state,
-                                        initialData:
-                                        BluetoothDeviceState.disconnected,
+                                      StreamBuilder<BluetoothConnectionState>(
+                                        stream: d.connectionState,
+                                        initialData: BluetoothConnectionState
+                                            .disconnected,
                                         builder: (c, snapshot) {
                                           if (snapshot.data ==
-                                              BluetoothDeviceState.connected) {
+                                              BluetoothConnectionState
+                                                  .connected) {
                                             return ElevatedButton(
-                                              onPressed: ()=>d.disconnect(),
+                                              onPressed: () => d.disconnect(),
                                               child: const Text('断开',
                                                   style: TextStyle(
                                                       color: Colors.white)),
                                             );
                                           }
-                                          LogD("msg=${snapshot.data.toString()}");
+                                          LogD(
+                                              "msg=${snapshot.data.toString()}");
                                           return const SizedBox();
                                         },
                                       )
@@ -83,15 +85,19 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      d.name.contains('Air Smart')?ElevatedButton(
-                                        child: const Text('校准系数',
-                                            style:
-                                                TextStyle(color: Colors.white)),
-                                        onPressed: () => Navigator.of(context)
-                                            .push(MaterialPageRoute(
-                                                builder: (context) =>
-                                                    AirSmartCalibra(device: d))),
-                                      ):SizedBox(),
+                                      d.platformName.contains('Air Smart')
+                                          ? ElevatedButton(
+                                              child: const Text('校准系数',
+                                                  style: TextStyle(
+                                                      color: Colors.white)),
+                                              onPressed: () =>
+                                                  Navigator.of(context).push(
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              AirSmartCalibra(
+                                                                  device: d))),
+                                            )
+                                          : SizedBox(),
                                       Gaps.hGap32,
                                       ElevatedButton(
                                         child: const Text('改名',
@@ -112,7 +118,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                 ),
               ),
               StreamBuilder<List<ScanResult>>(
-                stream: FlutterBlue.instance.scanResults,
+                stream: FlutterBluePlus.scanResults,
                 initialData: [],
                 builder: (c, snapshot) => Column(
                   children: snapshot.data!
@@ -140,20 +146,20 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
         ),
       ),
       floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBlue.instance.isScanning,
+        stream: FlutterBluePlus.isScanning,
         initialData: false,
         builder: (c, snapshot) {
           if (snapshot.data!) {
             return FloatingActionButton(
               child: Icon(Icons.stop),
-              onPressed: () => FlutterBlue.instance.stopScan(),
+              onPressed: () => FlutterBluePlus.stopScan(),
               backgroundColor: Colors.red,
             );
           } else {
             return FloatingActionButton(
                 child: Icon(Icons.refresh),
-                onPressed: () => FlutterBlue.instance
-                    .startScan(timeout: Duration(seconds: 4)));
+                onPressed: () =>
+                    FlutterBluePlus.startScan(timeout: Duration(seconds: 4)));
           }
         },
       ),
@@ -180,18 +186,18 @@ class DeviceScreen extends StatelessWidget {
           maxLines: 1,
         )),
         actions: <Widget>[
-          StreamBuilder<BluetoothDeviceState>(
-            stream: device.state,
-            initialData: BluetoothDeviceState.connecting,
+          StreamBuilder<BluetoothConnectionState>(
+            stream: device.connectionState,
+            initialData: BluetoothConnectionState.disconnected,
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
               switch (snapshot.data) {
-                case BluetoothDeviceState.connected:
+                case BluetoothConnectionState.connected:
                   onPressed = () => device.disconnect();
                   text = '断开连接';
                   break;
-                case BluetoothDeviceState.disconnected:
+                case BluetoothConnectionState.disconnected:
                   onPressed = () => device.connect();
                   text = '连接中';
                   break;
@@ -201,14 +207,15 @@ class DeviceScreen extends StatelessWidget {
                   break;
               }
               return ElevatedButton(
-                  onPressed: onPressed,
-                  child: Text(
-                    text,
-                    style: Theme.of(context)
-                        .primaryTextTheme
-                        .button
-                        ?.copyWith(color: Colors.white),
-                  ));
+                onPressed: onPressed,
+                child: Text(
+                  text,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(color: Colors.white),
+                ),
+              );
             },
           )
         ],
@@ -216,11 +223,11 @@ class DeviceScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            StreamBuilder<BluetoothDeviceState>(
-                stream: device.state,
-                initialData: BluetoothDeviceState.connecting,
+            StreamBuilder<BluetoothConnectionState>(
+                stream: device.connectionState,
+                initialData: BluetoothConnectionState.disconnected,
                 builder: (c, snapshot) {
-                  if (snapshot.data == BluetoothDeviceState.connected) {
+                  if (snapshot.data == BluetoothConnectionState.connected) {
                     return ListTile(
                       trailing: StreamBuilder<bool>(
                         stream: device.isDiscoveringServices,
@@ -295,15 +302,14 @@ class DeviceScreen extends StatelessWidget {
     await c.write(tempList, withoutResponse: true);
   }
 
-  void clearTextField(BuildContext context){
+  void clearTextField(BuildContext context) {
     Navigator.pop(context);
   }
 
   List<Widget> _buildServiceTiles(
       List<BluetoothService> services, BuildContext context, int textLength) {
-
     for (var service in services) {
-      if (service.uuid.toString().toUpperCase().substring(4, 8) == "AE00"){
+      if (service.uuid.toString().toUpperCase().substring(4, 8) == "AE00") {
         List<BluetoothCharacteristic> characteristics = service.characteristics;
         for (var characteristic in characteristics) {
           if (characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
@@ -319,13 +325,15 @@ class DeviceScreen extends StatelessWidget {
     FocusNode focusNode = FocusNode();
     return services
         .where((element) =>
-            element.uuid.toString().toUpperCase().substring(4, 8) == "1000" || element.uuid.toString().toUpperCase().substring(4, 8) == "AE00")
+            element.uuid.toString().toUpperCase().substring(4, 8) == "1000" ||
+            element.uuid.toString().toUpperCase().substring(4, 8) == "AE00")
         .map(
           (s) => ServiceTile(
             service: s,
             characteristicTiles: s.characteristics
                 .where((c) =>
-                    c.uuid.toString().toUpperCase().substring(4, 8) == "1001"||c.uuid.toString().toUpperCase().substring(4, 8) == "AE01")
+                    c.uuid.toString().toUpperCase().substring(4, 8) == "1001" ||
+                    c.uuid.toString().toUpperCase().substring(4, 8) == "AE01")
                 .map(
                   (c) => CharacteristicTile(
                     characteristic: c,
@@ -343,17 +351,19 @@ class DeviceScreen extends StatelessWidget {
                               )),
                           buttons: [
                             DialogButton(
-                              onPressed: ()  {
+                              onPressed: () {
                                 List<int> sendData =
                                     utf8.encode('AT+BM${nameController.text}');
                                 debugPrint('changeName=$sendData');
                                 for (int i = 0; i < sendData.length; i++) {
                                   bleData.add(sendData[i]);
                                 }
-                                debugPrint('insert=$bleData cha=${ c.uuid.toString().toUpperCase().substring(4, 8)}');
+                                debugPrint(
+                                    'insert=$bleData cha=${c.uuid.toString().toUpperCase().substring(4, 8)}');
                                 // await c.write(bleData, withoutResponse: true);
-                                writeData(bleData,c);
-                                Future.delayed(const Duration(milliseconds: 400), () {
+                                writeData(bleData, c);
+                                Future.delayed(
+                                    const Duration(milliseconds: 400), () {
                                   debugPrint('SET OVER');
                                   bleData.clear();
                                   device.disconnect();

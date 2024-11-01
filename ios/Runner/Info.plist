@@ -49,5 +49,7 @@
 	<string>允许使用蓝牙</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>打开蓝牙</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 </dict>
 </plist>
