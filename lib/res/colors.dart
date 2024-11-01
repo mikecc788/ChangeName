@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 class Colours {
-
-
   static const Color app_main = Color(0xFF4688FA);
   static const Color dark_app_main = Color(0xFF3F7AE0);
 
@@ -51,5 +49,29 @@ class Colours {
 
   // ignore: constant_identifier_names
   static const Color device_color = Color(0xffCC00FF);
+}
 
+class AppColors {
+  // 主色调
+  static const Color primary = Color(0xFF4A90E2); // 柔和的蓝色
+  static const Color primaryDark = Color(0xFF2171C7); // 深蓝色
+  static const Color accent = Color(0xFF62B1F6); // 浅蓝色
+
+  // 背景色
+  static const Color background = Color(0xFFF5F6FA); // 浅灰蓝色背景
+  static const Color cardBackground = Color(0xFFFFFFFF); // 纯白色卡片背景
+
+  // 文字颜色
+  static const Color textPrimary = Color(0xFF2C3E50); // 主文本色
+  static const Color textSecondary = Color(0xFF7F8C8D); // 次要文本色
+  static const Color textLight = Color(0xFFFFFFFF); // 浅色文本
+
+  // 功能色
+  static const Color success = Color(0xFF2ECC71); // 成功绿色
+  static const Color warning = Color(0xFFF1C40F); // 警告黄色
+  static const Color error = Color(0xFFE74C3C); // 错误红色
+
+  // 分割线和边框
+  static const Color divider = Color(0xFFECF0F1); // 分割线颜色
+  static const Color border = Color(0xFFBDC3C7); // 边框颜色
 }

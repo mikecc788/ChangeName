@@ -1,19 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:lfs_rename/res/colors.dart';
 import 'package:lfs_rename/res/resources.dart';
-import 'package:lfs_rename/tools/log.dart';
 import 'package:lfs_rename/widgets/search_list_widget.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
-
 import 'calibration.dart';
 
 class FindDevicesScreen extends StatefulWidget {
+  /// 扫描设备页面
   const FindDevicesScreen({Key? key}) : super(key: key);
 
   @override
@@ -21,150 +18,200 @@ class FindDevicesScreen extends StatefulWidget {
 }
 
 class _FindDevicesScreenState extends State<FindDevicesScreen> {
+  /// 扫描超时时间
+  static const Duration _scanTimeout = Duration(seconds: 4);
+
   @override
-  initState() {
+  void initState() {
     super.initState();
-    FlutterBluePlus.startScan(timeout: Duration(seconds: 4));
+    FlutterBluePlus.startScan(timeout: _scanTimeout);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Text('Find Devices')),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        centerTitle: true,
+        title: const Text(
+          '设备列表',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
       body: RefreshIndicator(
-        onRefresh: () =>
-            FlutterBluePlus.startScan(timeout: Duration(seconds: 4)),
+        onRefresh: () => FlutterBluePlus.startScan(timeout: _scanTimeout),
         child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
-              StreamBuilder<List<BluetoothDevice>>(
-                stream: Stream.periodic(Duration(seconds: 2))
-                    .asyncMap((_) => FlutterBluePlus.connectedDevices),
-                initialData: [],
-                builder: (c, snapshot) => Column(
-                  children: snapshot.data!
-                      .map((d) => Padding(
-                            padding: const EdgeInsets.all(22.0),
-                            child: Container(
-                              height: 120,
-                              color: Colours.bar_color,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: <Widget>[
-                                      Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Text(d.platformName,
-                                            style:
-                                                TextStyle(color: Colors.white)),
-                                      ),
-                                      StreamBuilder<BluetoothConnectionState>(
-                                        stream: d.connectionState,
-                                        initialData: BluetoothConnectionState
-                                            .disconnected,
-                                        builder: (c, snapshot) {
-                                          if (snapshot.data ==
-                                              BluetoothConnectionState
-                                                  .connected) {
-                                            return ElevatedButton(
-                                              onPressed: () => d.disconnect(),
-                                              child: const Text('断开',
-                                                  style: TextStyle(
-                                                      color: Colors.white)),
-                                            );
-                                          }
-                                          LogD(
-                                              "msg=${snapshot.data.toString()}");
-                                          return const SizedBox();
-                                        },
-                                      )
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      d.platformName.contains('Air Smart')
-                                          ? ElevatedButton(
-                                              child: const Text('校准系数',
-                                                  style: TextStyle(
-                                                      color: Colors.white)),
-                                              onPressed: () =>
-                                                  Navigator.of(context).push(
-                                                      MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              AirSmartCalibra(
-                                                                  device: d))),
-                                            )
-                                          : SizedBox(),
-                                      Gaps.hGap32,
-                                      ElevatedButton(
-                                        child: const Text('改名',
-                                            style:
-                                                TextStyle(color: Colors.white)),
-                                        onPressed: () => Navigator.of(context)
-                                            .push(MaterialPageRoute(
-                                                builder: (context) =>
-                                                    DeviceScreen(device: d))),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-              StreamBuilder<List<ScanResult>>(
-                stream: FlutterBluePlus.scanResults,
-                initialData: [],
-                builder: (c, snapshot) => Column(
-                  children: snapshot.data!
-                      .where((element) => element.device.name.isNotEmpty)
-                      .map(
-                        (r) => ScanResultTile(
-                          result: r,
-                          onTap: () => Navigator.of(context)
-                              .push(MaterialPageRoute(builder: (context) {
-                            r.device.connect();
-                            return DeviceScreen(device: r.device);
-                          })),
-                          onCal: () => Navigator.of(context)
-                              .push(MaterialPageRoute(builder: (context) {
-                            r.device.connect();
-                            return AirSmartCalibra(device: r.device);
-                          })),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
+              _buildConnectedDevices(),
+              _buildScanResults(),
             ],
           ),
         ),
       ),
-      floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBluePlus.isScanning,
-        initialData: false,
-        builder: (c, snapshot) {
-          if (snapshot.data!) {
-            return FloatingActionButton(
-              child: Icon(Icons.stop),
-              onPressed: () => FlutterBluePlus.stopScan(),
-              backgroundColor: Colors.red,
-            );
-          } else {
-            return FloatingActionButton(
-                child: Icon(Icons.refresh),
-                onPressed: () =>
-                    FlutterBluePlus.startScan(timeout: Duration(seconds: 4)));
-          }
-        },
+      floatingActionButton: _buildScanButton(),
+    );
+  }
+
+  /// 构建已连接设备列表
+  Widget _buildConnectedDevices() {
+    return StreamBuilder<List<BluetoothDevice>>(
+      stream: Stream.periodic(const Duration(seconds: 2))
+          .asyncMap((_) => FlutterBluePlus.connectedDevices),
+      initialData: const [],
+      builder: (c, snapshot) => Column(
+        children: snapshot.data!.map((d) => _buildDeviceCard(d)).toList(),
       ),
     );
   }
+
+  /// 构建设备卡片
+  Widget _buildDeviceCard(BluetoothDevice device) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: Colors.white,
+          child: Column(
+            children: [
+              _buildDeviceInfo(device),
+              const SizedBox(height: 8),
+              _buildDeviceButtons(device),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE5E5E5)),
+      ],
+    );
+  }
+
+  /// 构建扫描结果列表
+  Widget _buildScanResults() {
+    return StreamBuilder<List<ScanResult>>(
+      stream: FlutterBluePlus.scanResults,
+      initialData: const [],
+      builder: (c, snapshot) => Column(
+        children: snapshot.data!
+            .where((element) => element.device.name.isNotEmpty)
+            .map(
+              (r) => ScanResultTile(
+                result: r,
+                onTap: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) {
+                  r.device.connect();
+                  return DeviceScreen(device: r.device);
+                })),
+                onCal: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) {
+                  r.device.connect();
+                  return AirSmartCalibra(device: r.device);
+                })),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  /// 构建扫描按钮
+  Widget _buildScanButton() {
+    return StreamBuilder<bool>(
+      stream: FlutterBluePlus.isScanning,
+      initialData: false,
+      builder: (c, snapshot) {
+        if (snapshot.data!) {
+          return FloatingActionButton(
+            onPressed: () => FlutterBluePlus.stopScan(),
+            backgroundColor: AppColors.error,
+            child: const Icon(Icons.stop, color: AppColors.textLight),
+          );
+        } else {
+          return FloatingActionButton(
+            onPressed: () => FlutterBluePlus.startScan(timeout: _scanTimeout),
+            backgroundColor: AppColors.primary,
+            child: const Icon(Icons.refresh, color: AppColors.textLight),
+          );
+        }
+      },
+    );
+  }
+
+  /// 构建设备信息
+  Widget _buildDeviceInfo(BluetoothDevice device) {
+    return Row(
+      children: <Widget>[
+        Icon(Icons.bluetooth, color: Colors.blue[700], size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            device.platformName,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        _buildConnectionButton(device),
+      ],
+    );
+  }
+
+  /// 构建设备按钮
+  Widget _buildDeviceButtons(BluetoothDevice device) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (device.platformName.contains('Air Smart'))
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blue[700],
+            ),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => AirSmartCalibra(device: device))),
+            child: const Text('校准系数'),
+          ),
+        const SizedBox(width: 16),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.blue[700],
+          ),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => DeviceScreen(device: device))),
+          child: const Text('修改名称'),
+        ),
+      ],
+    );
+  }
+
+  /// 构建连接按钮
+  Widget _buildConnectionButton(BluetoothDevice device) {
+    return StreamBuilder<BluetoothConnectionState>(
+      stream: device.connectionState,
+      initialData: BluetoothConnectionState.disconnected,
+      builder: (c, snapshot) {
+        if (snapshot.data == BluetoothConnectionState.connected) {
+          return TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+            ),
+            onPressed: () => device.disconnect(),
+            child: const Text('断开'),
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
+
+  // ... 其他辅助方法
 }
 
 class DeviceScreen extends StatelessWidget {
@@ -173,18 +220,22 @@ class DeviceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<int> bleData = [];
-    BluetoothCharacteristic? mCharacteristic;
     bool isDiscoverSer = false;
-    bool isSetMTu = false;
     int textLength = 0;
     return Scaffold(
       appBar: AppBar(
-        title: Center(
-            child: AutoSizeText(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        centerTitle: true,
+        title: Text(
           device.name,
-          maxLines: 1,
-        )),
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         actions: <Widget>[
           StreamBuilder<BluetoothConnectionState>(
             stream: device.connectionState,
@@ -192,28 +243,40 @@ class DeviceScreen extends StatelessWidget {
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
+              Color buttonColor;
               switch (snapshot.data) {
                 case BluetoothConnectionState.connected:
                   onPressed = () => device.disconnect();
                   text = '断开连接';
+                  buttonColor = Colors.red;
                   break;
                 case BluetoothConnectionState.disconnected:
                   onPressed = () => device.connect();
-                  text = '连接中';
+                  text = '连接';
+                  buttonColor = Colors.blue[700]!;
                   break;
                 default:
                   onPressed = null;
-                  text = snapshot.data.toString().substring(21).toUpperCase();
+                  text = '连接中';
+                  buttonColor = Colors.grey;
                   break;
               }
-              return ElevatedButton(
-                onPressed: onPressed,
-                child: Text(
-                  text,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(color: Colors.white),
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: TextButton(
+                  onPressed: onPressed,
+                  style: TextButton.styleFrom(
+                    foregroundColor: buttonColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      color: buttonColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               );
             },
@@ -228,23 +291,18 @@ class DeviceScreen extends StatelessWidget {
                 initialData: BluetoothConnectionState.disconnected,
                 builder: (c, snapshot) {
                   if (snapshot.data == BluetoothConnectionState.connected) {
-                    return ListTile(
-                      trailing: StreamBuilder<bool>(
-                        stream: device.isDiscoveringServices,
-                        initialData: false,
-                        builder: (c, snapshot) {
-                          debugPrint('snapshot=${snapshot.data}');
-                          if (!snapshot.data!) {
-                            if (!isDiscoverSer) {
-                              isDiscoverSer = true;
-                              debugPrint('discoverServices $device');
-                              device.discoverServices();
-                            }
-                          }
-                          return const SizedBox();
-                        },
-                      ),
-                    );
+                    if (!isDiscoverSer) {
+                      isDiscoverSer = true;
+                      Future.delayed(Duration.zero, () async {
+                        debugPrint('Discovering services for $device');
+                        try {
+                          await device.discoverServices();
+                        } catch (e) {
+                          debugPrint('Error discovering services: $e');
+                        }
+                      });
+                    }
+                    return const SizedBox();
                   }
                   return const Padding(
                     padding: EdgeInsets.all(18.0),
@@ -258,13 +316,6 @@ class DeviceScreen extends StatelessWidget {
                   if (!snapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
                   }
-                  // if(snapshot.data!<21 && snapshot.data!>0){
-                  //   Future.delayed(Duration(milliseconds:1200),(){
-                  //     debugPrint('SET MTU OVER');
-                  //     device.requestMtu(223);
-                  //   });
-                  // }
-                  // device.requestMtu(223);
                   Future.delayed(const Duration(seconds: 2), () {
                     device.requestMtu(223);
                   });
@@ -276,14 +327,10 @@ class DeviceScreen extends StatelessWidget {
                   return ListTile(
                     title: Text('可设置最大字符长度'),
                     subtitle: Text('当前可输入${snapshot.data! - 5}个字符'),
-                    trailing: ElevatedButton(
-                      child: Text('修改长度'),
-                      onPressed: () => device.requestMtu(223),
-                    ),
                   );
                 }),
             StreamBuilder<List<BluetoothService>>(
-              stream: device.services,
+              stream: Stream.value(device.servicesList),
               initialData: [],
               builder: (c, snapshot) {
                 return Column(
@@ -309,11 +356,10 @@ class DeviceScreen extends StatelessWidget {
   List<Widget> _buildServiceTiles(
       List<BluetoothService> services, BuildContext context, int textLength) {
     for (var service in services) {
-      if (service.uuid.toString().toUpperCase().substring(4, 8) == "AE00") {
+      if (service.uuid.toString().toUpperCase() == "AE00") {
         List<BluetoothCharacteristic> characteristics = service.characteristics;
         for (var characteristic in characteristics) {
-          if (characteristic.uuid.toString().toUpperCase().substring(4, 8) ==
-              "AE01") {
+          if (characteristic.uuid.toString().toUpperCase() == "AE01") {
             debugPrint('write data');
           }
         }
@@ -325,21 +371,21 @@ class DeviceScreen extends StatelessWidget {
     FocusNode focusNode = FocusNode();
     return services
         .where((element) =>
-            element.uuid.toString().toUpperCase().substring(4, 8) == "1000" ||
-            element.uuid.toString().toUpperCase().substring(4, 8) == "AE00")
+            element.uuid.toString().toUpperCase() == "1000" ||
+            element.uuid.toString().toUpperCase() == "AE00")
         .map(
           (s) => ServiceTile(
             service: s,
             characteristicTiles: s.characteristics
                 .where((c) =>
-                    c.uuid.toString().toUpperCase().substring(4, 8) == "1001" ||
-                    c.uuid.toString().toUpperCase().substring(4, 8) == "AE01")
+                    c.uuid.toString().toUpperCase() == "1001" ||
+                    c.uuid.toString().toUpperCase() == "AE01")
                 .map(
                   (c) => CharacteristicTile(
                     characteristic: c,
                     onReadPressed: () => c.read(),
                     onWritePressed: () async {
-                      nameController.text = device.name;
+                      nameController.text = device.platformName;
                       Alert(
                           context: context,
                           title: '输入设备名字',
@@ -359,7 +405,7 @@ class DeviceScreen extends StatelessWidget {
                                   bleData.add(sendData[i]);
                                 }
                                 debugPrint(
-                                    'insert=$bleData cha=${c.uuid.toString().toUpperCase().substring(4, 8)}');
+                                    'insert=$bleData cha=${c.uuid.toString().toUpperCase()}');
                                 // await c.write(bleData, withoutResponse: true);
                                 writeData(bleData, c);
                                 Future.delayed(
@@ -402,5 +448,120 @@ class DeviceScreen extends StatelessWidget {
           ),
         )
         .toList();
+  }
+}
+
+/// 服务项组件
+class ServiceTile extends StatelessWidget {
+  final BluetoothService service;
+  final List<CharacteristicTile> characteristicTiles;
+
+  const ServiceTile({
+    Key? key,
+    required this.service,
+    required this.characteristicTiles,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (characteristicTiles.isNotEmpty) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: characteristicTiles,
+      );
+    } else {
+      return const SizedBox();
+    }
+  }
+}
+
+/// 特征值项组件
+class CharacteristicTile extends StatelessWidget {
+  final BluetoothCharacteristic characteristic;
+  final List<DescriptorTile> descriptorTiles;
+  final VoidCallback? onReadPressed;
+  final VoidCallback? onWritePressed;
+  final VoidCallback? onNotificationPressed;
+
+  const CharacteristicTile({
+    Key? key,
+    required this.characteristic,
+    required this.descriptorTiles,
+    this.onReadPressed,
+    this.onWritePressed,
+    this.onNotificationPressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return characteristic.uuid.toString().toUpperCase() == '1001' ||
+            characteristic.uuid.toString().toUpperCase() == 'AE01'
+        ? Padding(
+            padding: const EdgeInsets.only(top: 38.0),
+            child: ElevatedButton(
+              onPressed: onWritePressed,
+              child: const Text('修改名字'),
+            ),
+          )
+        : const SizedBox();
+  }
+}
+
+/// 描述符项组件
+class DescriptorTile extends StatelessWidget {
+  final BluetoothDescriptor descriptor;
+  final VoidCallback? onReadPressed;
+  final VoidCallback? onWritePressed;
+
+  const DescriptorTile({
+    Key? key,
+    required this.descriptor,
+    this.onReadPressed,
+    this.onWritePressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text('Descriptor'),
+          Text(
+            '0x${descriptor.uuid.toString().toUpperCase()}',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color),
+          )
+        ],
+      ),
+      subtitle: StreamBuilder<List<int>>(
+        stream: descriptor.value,
+        initialData: descriptor.lastValue,
+        builder: (c, snapshot) => Text(snapshot.data.toString()),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          IconButton(
+            icon: Icon(
+              Icons.file_download,
+              color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+            ),
+            onPressed: onReadPressed,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.file_upload,
+              color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+            ),
+            onPressed: onWritePressed,
+          )
+        ],
+      ),
+    );
   }
 }

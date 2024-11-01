@@ -4,78 +4,106 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:lfs_rename/res/resources.dart';
 
+/// 搜索列表项组件
 class SearchListItem extends StatelessWidget {
   final int index;
   final List<BluetoothDevice> list;
   final Function(int) clickItem;
 
-  const SearchListItem(
-      {Key? key,
-      required this.index,
-      required this.list,
-      required this.clickItem})
-      : super(key: key);
+  const SearchListItem({
+    Key? key,
+    required this.index,
+    required this.list,
+    required this.clickItem,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    String title = list[index].name;
-    String detail = list[index].id.toString();
-    double titleSize = Platform.isIOS ? 24 : 18;
-    double detailSize = Platform.isIOS ? 18 : 14;
     return StreamBuilder<BluetoothConnectionState>(
-        stream: list[index].connectionState,
-        builder: (context, snapshot) {
-          // LogD('snapshot=${snapshot.data}');
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return Padding(
-              padding: const EdgeInsets.only(left: 20, top: 20, right: 20),
-              child: GestureDetector(
-                onTap: () => clickItem(index),
-                child: Card(
-                  color: Colours.home_color,
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: kDefaultLeftPadding,
-                                  top: 20,
-                                  bottom: 18),
-                              child: AutoSizeText(
-                                title,
-                                maxLines: 2,
-                                style: TextStyle(
-                                    color: Colours.bar_color,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: titleSize),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: kDefaultLeftPadding, bottom: 40),
-                              child: AutoSizeText(
-                                detail,
-                                maxLines: 2,
-                                style: TextStyle(
-                                    color: Colours.bar_color,
-                                    fontSize: detailSize),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ));
-        });
+      stream: list[index].connectionState,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return _buildListItem(context);
+      },
+    );
   }
+
+  Widget _buildListItem(BuildContext context) {
+    final device = list[index];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: InkWell(
+          onTap: () => clickItem(index),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: AppColors.cardBackground,
+            ),
+            child: _buildDeviceInfo(device),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建设备信息
+  Widget _buildDeviceInfo(BluetoothDevice device) {
+    return Row(
+      children: <Widget>[
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.bluetooth,
+            color: AppColors.primary,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                device.name,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                device.id.toString(),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(
+          Icons.chevron_right,
+          color: AppColors.primary,
+        ),
+      ],
+    );
+  }
+
+  // ... 其他辅助方法
 }
 
 class BluetoothOffScreen extends StatelessWidget {
@@ -113,137 +141,77 @@ class BluetoothOffScreen extends StatelessWidget {
 class ScanResultTile extends StatelessWidget {
   const ScanResultTile({Key? key, required this.result, this.onTap, this.onCal})
       : super(key: key);
+
   final ScanResult result;
   final VoidCallback? onTap;
   final VoidCallback? onCal;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: ListView(
-        physics: NeverScrollableScrollPhysics(),
-        shrinkWrap: true,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20, top: 20, right: 20),
-            child: GestureDetector(
-              onTap: () => () {},
-              child: Card(
-                color: Colours.home_color,
-                child: Column(
-                  children: [
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: kDefaultLeftPadding,
-                                    top: 20,
-                                    bottom: 18),
-                                child: AutoSizeText(
-                                  result.device.platformName,
-                                  maxLines: 2,
-                                  style: TextStyle(
-                                      color: Colours.bar_color,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: kDefaultLeftPadding, bottom: 40),
-                                child: AutoSizeText(
-                                  result.device.remoteId.toString(),
-                                  maxLines: 2,
-                                  style: TextStyle(
-                                      color: Colours.bar_color, fontSize: 14),
-                                ),
-                              ),
-                            ],
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              Row(
+                children: <Widget>[
+                  Icon(Icons.bluetooth, color: Colors.blue[700], size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          result.device.platformName,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          result.device.remoteId.toString(),
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        result.device.name.contains('Air Smart')
-                            ? ElevatedButton(
-                                onPressed:
-                                    (result.advertisementData.connectable)
-                                        ? onCal
-                                        : null,
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      MaterialStateProperty.all<Color>(
-                                          Colours.bar_color),
-                                  minimumSize:
-                                      MaterialStateProperty.all(Size(100, 50)),
-                                ),
-                                child: const Text(
-                                  '校准系数',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 18),
-                                ))
-                            : SizedBox(),
-                        Gaps.hGap32,
-                        ElevatedButton(
-                            onPressed: (result.advertisementData.connectable)
-                                ? onTap
-                                : null,
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colours.bar_color),
-                              minimumSize:
-                                  MaterialStateProperty.all(Size(100, 50)),
-                            ),
-                            child: const Text(
-                              '修改名字',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
-                            )),
-                      ],
-                    ),
-                    Gaps.vGap16,
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (result.device.platformName.contains('Air Smart'))
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.blue[700],
+                      ),
+                      onPressed: onCal,
+                      child: const Text('校准系数'),
+                    ),
+                  const SizedBox(width: 16),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue[700],
+                    ),
+                    onPressed: onTap,
+                    child: const Text('修改名称'),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const Divider(height: 1, color: Color(0xFFE5E5E5)),
+      ],
     );
-  }
-
-  String getNiceHexArray(List<int> bytes) {
-    return '[${bytes.map((i) => i.toRadixString(16).padLeft(2, '0')).join(', ')}]'
-        .toUpperCase();
-  }
-
-  String getNiceManufacturerData(Map<int, List<int>> data) {
-    if (data.isEmpty) {
-      return 'N/A';
-    }
-    List<String> res = [];
-    data.forEach((id, bytes) {
-      res.add(
-          '${id.toRadixString(16).toUpperCase()}: ${getNiceHexArray(bytes)}');
-    });
-    return res.join(', ');
-  }
-
-  String getNiceServiceData(Map<String, List<int>> data) {
-    if (data.isEmpty) {
-      return 'N/A';
-    }
-    List<String> res = [];
-    data.forEach((id, bytes) {
-      res.add('${id.toUpperCase()}: ${getNiceHexArray(bytes)}');
-    });
-    return res.join(', ');
   }
 }
 
